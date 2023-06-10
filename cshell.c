@@ -4,10 +4,28 @@
 #include <string.h>
 #include <unistd.h>
 
+// 
+const char *PROMPT = "cshell$ ";
+const char *DELIM= " \n";
+
 typedef struct{
     char *name;
     char *value;
 }EnvVar;
+
+
+void freeSentence(char **oldSent){
+
+    int i = 0;
+
+    while(oldSent[i] != NULL){       
+        free(oldSent[i]);
+        i++;
+    }
+
+
+    return;
+}
 
 
 char *get_line(){
@@ -20,66 +38,76 @@ char *get_line(){
 
 char **parser(char *inputLine){
 
+    printf("parser\n");
+    printf("input: %s\n", inputLine);
+
     char **parsed;
-    char *token;
-    const char *delim = " \n";
-    printf("testing\n");
-    token = strtok(inputLine, delim);
+    char *token, *line_copy;
     int num_token = 0;
-    char *line_copy;
-    line_copy = malloc(sizeof(char)*strlen(inputLine));
+
+    line_copy = malloc(sizeof(char)*sizeof(inputLine));
+    parsed = malloc(sizeof(char)*sizeof(line_copy));
     strcpy(line_copy, inputLine);
+    token = strtok(line_copy, DELIM);
 
-    printf("%s\n", line_copy);
-    printf("%s\n", token);
-
+    printf("before while loop in parser\n");
     while(token != NULL){
 
-        token = strtok(NULL, delim);
-
         num_token++;
+
+        printf("token: %s\n", token);
+        printf("token number: %d\n", num_token);
+
+        parsed[num_token] = token;
+        token = strtok(NULL, DELIM);
     }
 
-    printf("%d\n", num_token);
 
-    return **parsed;
+    free(token);
+    free(line_copy);
+
+    return parsed;
 }
 
 
 int main(int ac, char **temp){
 
-
+    // input mode
     if(ac == 1){
 
-        char *prompt = "cshell$ ";
         bool exit = false;
-
         // upper bound to be changed!
-        char *input = malloc(1000);
+        char *input = malloc(sizeof(char)*999);
         char **tokens;    
 
         // main loop
         while(!exit){
             
-            printf("%s", prompt);
-            scanf("%s", input);
+            
+            printf("%s", PROMPT);
+            // scanf("%s", input);
+            fgets(input, 1000,stdin);
 
             if(input[0] == '$'){
-
+                printf("using var mode");
                 // store input
                 // check variable
 
-            }else if(!strcmp(input, "exit")){
+            }else if(!strcmp(input, "exit\n")){
+                printf("bye\n");
                 exit = true;
             }else{
-                printf("%s\n", input);
                 tokens = parser(input);
             }
 
+            freeSentence(tokens);
         }
         
-        free(input);
 
+        free(input);
+        // free the pointers within pointer
+
+    // script mode
     }else{
         
     }
