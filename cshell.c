@@ -155,7 +155,7 @@ char **split_line(char *line){
 
 // man execve
 int execute_command(char **tokens, EnvVar variables[]){
-  int numofcomm = 6, switchcomm = 0;
+  int numofcomm = 7, switchcomm = 0;
   char *listofcomm[numofcomm];
 
   listofcomm[0] = "ls";
@@ -164,6 +164,7 @@ int execute_command(char **tokens, EnvVar variables[]){
   listofcomm[3] = "print";
   listofcomm[4] = "exit"; 
   listofcomm[5] = "log";
+  listofcomm[6] = "theme";
   //printf("!as%d", switchcomm);
   
   for (int i = 0; i < numofcomm; i++){
@@ -259,11 +260,25 @@ int execute_command(char **tokens, EnvVar variables[]){
     
     struct Command *newLog = createLog("print", 0, NULL);
     struct Command *newLog2 = createLog("log", 0, newLog);
-
+    
     printLog(newLog2);
     freeLog(newLog2);
     return (1);
 
+  case 7:
+    if(strcmp(tokens[1], "red") == 0){
+    	printf("%c[%dm\n", 0x1B, 31);
+    }
+    else if(strcmp(tokens[1], "blue") == 0){
+    	printf("%c[%dm\n", 0x1B, 34);
+    }
+    else if(strcmp(tokens[1], "green") == 0){
+    	printf("%c[%dm\n", 0x1B, 32);
+    }
+    else{
+    	printf("Unsupported theme\n");
+    }
+    
   default:
     break;   
 
