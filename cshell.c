@@ -2,6 +2,7 @@
  #include <stdlib.h>
  #include <unistd.h>
  #include <string.h>
+ #include <time.h>
  
  typedef struct {
  	char *name;
@@ -9,7 +10,63 @@
  	//struct EnvVar * next;
  } EnvVar;
 
+ typedef struct{
+    char *name;
+    struct tm time;
+    // original line: "return value"
+    int value;
+    struct Command *preLog;
+    // 
+ }Command;
+
 // man getline -> ssize_t getline(char **lineptr, size_t *n, FILE *stream)
+
+// free up log struct
+void freeLog(Command *cmdLog){
+    struct Command *temp = cmdLog;
+    while(cmdLog != NULL){
+        temp = cmdLog->preLog;
+        free(cmdLog);
+        cmdLog = temp;
+    }
+    return;
+}
+
+// this function creates log, called everytime a input command is being processed
+struct Command *createLog(char *cmdName, int successFail, struct Command *preCmd){
+
+    Command *cmdLog;
+    cmdLog = malloc(sizeof(Command));
+
+    time_t rawtime;
+    time(&rawtime);
+    cmdLog -> time = *localtime(&rawtime);
+    cmdLog -> name = cmdName;
+    cmdLog -> value = successFail;
+
+    if(preCmd != NULL){
+        cmdLog -> preLog = NULL;
+    }else{
+        cmdLog -> preLog = preCmd;
+    }
+
+    return cmdLog;
+}
+
+// use this function to print out log
+void printLog(Command *myLog){
+
+    // recursive call
+    if(myLog != NULL){
+        printLog(myLog -> preLog);
+        printf("%s\n", asctime(&(myLog->time)));
+        printf(" %s\n", myLog->name);
+    // base case
+    }else{
+        return;
+    }
+}
+
 
 char *get_line(void){
   char *line = NULL;
@@ -282,6 +339,7 @@ char **save_var(char* lineptr){
  	int max_array_size = 20;
  	int current_array_size = 0;
  	EnvVar variables[max_array_size];
+  struct Command *shellLog = NULL;
  	
  	if(ac == 1){
  		printf("hello");
@@ -338,31 +396,6 @@ char **save_var(char* lineptr){
  		printf("bye");
  	}
  	(void)argv;
- 	
- 	/*char *prompt = "cshell$ ";
- 	char *lineptr = "temp";
- 	size_t n = 0;
- 	char *isExiting = "";
- 	
- 	//char cwd[1024];
- 	//getcwd(cwd, sizeof(cwd));
- 	//printf("\nDir: %s\n", cwd);
- 	
- 	(void)ac;
- 	(void)argv;
- 	
- 	while (strcmp(isExiting, "exit\n") != 0){
-	 	printf("%s", prompt);
-	 	getline(&lineptr, &n, stdin);
-	 	isExiting = lineptr;
-	 	printf("%s\n", isExiting);
-	 	int x = strcmp(isExiting, "exit\n");
-	 	printf("%d", x);
-	 	
-	 	//free(lineptr);
- 	}
- 	
- 	free(lineptr);
- 	printf("\nBye!\n");*/
+
  	return (0); 
  }
