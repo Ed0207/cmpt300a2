@@ -10,58 +10,68 @@
  	//struct EnvVar * next;
  } EnvVar;
 
-int logSize;
-
 typedef struct Command{
-  char *name;
-  struct tm time;
-  int returnVal;
-}Command;
-
-// takes in an array of Command struct
-void printLog(Command **myLogs){
-
-  for(int i = 0; i < logSize; i++){
-    printf("%s", asctime(&(myLogs[i]->time)));
-    printf(" %s %d\n", myLogs[i]->name, myLogs[i]->returnVal);
-  }
-
-  return;
+    char *name;
+    struct tm time;
+    // original line: "return value"
+    int value;
+    struct Command *preLog;
+ }Command;
+ 
+ 
+ 
+ // free up log struct
+// cmd pointer required
+void freeLog(Command *cmdLog){
+    Command *temp = cmdLog;
+    while(cmdLog != NULL){
+        temp = cmdLog->preLog;
+        free(cmdLog);
+        cmdLog = temp;
+    }
+    return;
 }
 
+// this function creates log, called everytime a input command is being processed
+// cmd pointer required
+Command *createLog(char *cmdName, int successFail, Command *preCmd){
 
-void freeLogs(Command **oldLogs){
+    Command *cmdLog;
+    cmdLog = malloc(sizeof(Command));
 
-  for(int i = 0; i < logSize; i++){
-    free(oldLogs[i]->name);
-    free(oldLogs[i]);
-  }
+    time_t rawtime;
+    time(&rawtime);
+    cmdLog -> time = *localtime(&rawtime);
+    cmdLog -> name = cmdName;
+    cmdLog -> value = successFail;
 
-  return;
+    if(preCmd != NULL){
+        cmdLog -> preLog = preCmd;
+    }else{
+        cmdLog -> preLog = NULL;
+    }
+
+    return cmdLog;
 }
 
+// use this function to print out log
+// cmd pointer required
+void printLog(Command *myLog){
 
-Command** createLog(Command **oldLogs, char *cmdName, int cmdVal){
-
-  Command **newLogs = malloc((logSize += 1) * sizeof(Command));
-  
-  if(oldLogs != NULL){
-    memcpy(oldLogs, newLogs, sizeof(newLogs));
-  }
-
-  Command *temp = malloc(1 * sizeof(Command));
-  temp -> name = malloc(128*sizeof(char));
-  strcpy(temp->name, cmdName);
-  temp -> returnVal = cmdVal;
-  memcpy(temp, newLogs[logSize-1], sizeof(temp));
-
-  freeLogs(oldLogs);
-  return newLogs;
+    // recursive call
+    if(myLog != NULL){
+        printLog(myLog -> preLog);
+        // asctime return string appended with \n
+        printf("%s", asctime(&(myLog->time)));
+        printf(" %s %d\n", myLog->name, myLog->value);
+    // base case
+    }else{
+        return;
+    }
 }
-
-
-
-
+ 
+ 
+ 
 // man getline -> ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 
 char *get_line(void){
@@ -107,12 +117,12 @@ char **split_line(char *line){
 // calculate number of tokens
   while (token != NULL) {
     numtokens++;    
-    printf("while . %s\n", token);
+    // printf("while . %s\n", token);
     token = strtok(NULL, delim);  
   }
 
   numtokens++;
-  printf(". %d\n", numtokens);
+  // printf(". %d\n", numtokens);
 // allocate memory for the array of strings
 
   tokens = malloc(sizeof(char *) * numtokens);
@@ -124,22 +134,20 @@ char **split_line(char *line){
     tokens[i] = malloc(sizeof(char) * strlen(token1));
     strcpy(tokens[i], token1);
     token1 = strtok(NULL, delim); 
-    printf("inside for %s\n", tokens[i]);
+    // printf("inside for %s\n", tokens[i]);
   }
   
   tokens[i] = NULL;
-
-
   
-  printf("tokens %s\n", tokens[1]);
+  // printf("tokens %s\n", tokens[1]);
   return(tokens);
 }
 
 
 
 // man execve
-int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
-  int numofcomm = 7, switchcomm = 0;
+int execute_command(char **tokens, EnvVar variables[]){
+  int numofcomm = 6, switchcomm = 0;
   char *listofcomm[numofcomm];
 
   listofcomm[0] = "ls";
@@ -148,8 +156,6 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
   listofcomm[3] = "print";
   listofcomm[4] = "exit"; 
   listofcomm[5] = "log";
-  listofcomm[6] = "theme";
-  //printf("!as%d", switchcomm);
   
   for (int i = 0; i < numofcomm; i++){
     if (strcmp(tokens[0], listofcomm[i]) == 0){
@@ -157,7 +163,6 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
       break;
     }   
   }
- 
   
   switch (switchcomm) {
   case 1: //ls
@@ -167,7 +172,6 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     else{
     	wait(NULL);
     }    
-    myLogs[0] = createLog(myLogs[0], "ls", 0);
     return (1);
 
   case 2: //pwd
@@ -177,7 +181,6 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     else{
     	wait(NULL);
     }   
-    myLogs[0] = createLog(myLogs[0], "pwd", 0);
     return (1);
 
   case 3: //whoami
@@ -187,75 +190,59 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     else{
     	wait(NULL);
     } 
-    myLogs[0] = createLog(myLogs[0], "whoami", 0);
     return (1);
-
   case 4: //printing
   	int i = 1;
   	int j = 0;
   	char* print_line;	
-    print_line = malloc(sizeof(char) * strlen(tokens)*150);
-      //EnvVar *current = &List;
-      while(tokens[i] != NULL){
-        //printf("Inside while loop Tokens %s\n", tokens[i]);
-        //printf("Inside while loop Tokens[0] %c\n", tokens[i][0]);
-        if(tokens[i][0] == '$'){
-          char *compare;
-          compare = malloc(sizeof(char *) * strlen(tokens[i]));
-          
-          strncpy(compare, tokens[i]+1, strlen(tokens[i])-1);
-          
-          while(variables[j].name != NULL){
-            if(strcmp(variables[j].name, compare) == 0){
-              //printf("print from exec list %s\n", variables[j].value);
-              //current = current->next;
-              variables[j].value[strcspn(variables[j].value, "\n")] = 0;
-              strcat(print_line, variables[j].value);
-              strcat(print_line, " ");
-            }
-            j++;
-          }
-          j = 0;
-          /*
-          for(j = 0; j < 1; j++){
-            printf("print from exec list %s\n", variables[j].value);
-          }*/
-      }
-      else{
-        strcat(print_line, tokens[i]);
-        strcat(print_line, " ");
-      }
-      i++;
-    }
-    printf("Final print: %s\n", print_line);
+	print_line = malloc(sizeof(char) * strlen(tokens)*150);
+  	//EnvVar *current = &List;
+  	while(tokens[i] != NULL){
+  		//printf("Inside while loop Tokens %s\n", tokens[i]);
+  		//printf("Inside while loop Tokens[0] %c\n", tokens[i][0]);
+  		if(tokens[i][0] == '$'){
+  			char *compare;
+  			compare = malloc(sizeof(char *) * strlen(tokens[i]));
+  			
+  			strncpy(compare, tokens[i]+1, strlen(tokens[i])-1);
+  			
+		  	while(variables[j].name != NULL){
+		  		if(strcmp(variables[j].name, compare) == 0){
+		  			//printf("print from exec list %s\n", variables[j].value);
+		  			//current = current->next;
+		  			variables[j].value[strcspn(variables[j].value, "\n")] = 0;
+		  			strcat(print_line, variables[j].value);
+		  			strcat(print_line, " ");
+		  		}
+		  		j++;
+		  	}
+		  	j = 0;
+		  	
+		}
+		else{
+			strcat(print_line, tokens[i]);
+			strcat(print_line, " ");
+		}
+		i++;
+	}
+	// printf("Final print: %s\n", print_line);
     return(1);
   
   case 5: //exit
-    printf("exit");
-    printf("Bye!");
+    printf("Bye!\n");
     //exit(0);
     return 0;
     
   case 6:
-    printf("testing log\n");
-    printLog(myLogs[0]);
+    printf("testing log (to be removed)\n");
+    
+    struct Command *newLog = createLog("print", 0, NULL);
+    struct Command *newLog2 = createLog("log", 0, newLog);
+
+    printLog(newLog2);
+    freeLog(newLog2);
     return (1);
 
-
-  case 7:
-    if(strcmp(tokens[1], "red") == 0){
-    	printf("%c[%dm\n", 0x1B, 31);
-    }
-    else if(strcmp(tokens[1], "blue") == 0){
-    	printf("%c[%dm\n", 0x1B, 34);
-    }
-    else if(strcmp(tokens[1], "green") == 0){
-    	printf("%c[%dm\n", 0x1B, 32);
-    }
-    else{
-    	printf("Unsupported theme\n");
-    }
-    
   default:
     break;   
 
@@ -320,7 +307,7 @@ char **save_var(char* lineptr){
 	printf("token var check %s\n", var_token);
 	printf("token value check %s\n", value_token);
 	
-
+	
 	tokens = malloc(sizeof(char *) * 2);
 	tokens[0] = malloc(sizeof(char *) * strlen(lineptr));
 	tokens[1] = malloc(sizeof(char *) * strlen(lineptr));
@@ -334,15 +321,12 @@ char **save_var(char* lineptr){
 
  
  int main(int ac, char **argv){
-
-  Command ***myLogs = NULL;
-  logSize = 0;
+ 	
  	int max_array_size = 20;
  	int current_array_size = 0;
  	EnvVar variables[max_array_size];
  	
  	if(ac == 1){
- 		printf("hello");
  		char *prompt = "cshell$ ";
  		char *lineptr = "";
  		char **tokens;
@@ -353,15 +337,12 @@ char **save_var(char* lineptr){
  			//read line from std in
  			lineptr = get_line();
  			
- 			printf("%c\n", lineptr[0]);
+ 			// printf("%c\n", lineptr[0]);
  			//parse line
  			if(lineptr[0] == '$'){
  				tokens = save_var(lineptr);
- 				//printf("List var check %s\n", tokens[0]);
-				//printf("List value check %s\n", tokens[1]);
+ 				
  				if(tokens[0] != NULL && tokens[1] != NULL){
- 					//envList->name = tokens[0];
- 					//envList->value = tokens[1];
  					
  						if(variables[current_array_size].name == NULL){
 		 					variables[current_array_size].name = tokens[0];
@@ -384,18 +365,49 @@ char **save_var(char* lineptr){
  				tokens = split_line(lineptr);
  				//printf("%s\n", *tokens);
  					
- 				if(execute_command(tokens, variables, myLogs) == 0){
+ 				if(execute_command(tokens, variables) == 0){
 					return(0);
 				}
 			}
 			
  		}
- 		//fclose(fp);
+    
  	}
  	else{
- 		printf("bye");
+
+    char *fileName = argv[1];
+    FILE *fp = fopen(fileName,"r");
+
+    if(fp == NULL){
+      printf("Unable to read script file: %s\n", fileName);
+      exit(1);
+    }else{
+      // start parsing the line
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t read;
+      printf("opening file: %s\n", fileName);
+      
+      while((read = getline(&line, &len, fp)) != -1){
+        printf("%s", line);
+
+
+        // the following code is directly copied from interactive mode
+        // can be edited
+
+        
+        
+
+      }
+
+      if(line){
+        free(line);
+      }
+    }
+
+    fclose(fp);
+ 		printf("bye\n");
  	}
- 	(void)argv;
  	
  	return (0); 
  }
