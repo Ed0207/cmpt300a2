@@ -10,18 +10,17 @@
  	//struct EnvVar * next;
  } EnvVar;
 
- typedef struct{
+typedef struct{
     char *name;
     struct tm time;
     // original line: "return value"
     int value;
     struct Command *preLog;
  }Command;
-
-// man getline -> ssize_t getline(char **lineptr, size_t *n, FILE *stream)
-
-
-// free up log struct
+ 
+ 
+ 
+ // free up log struct
 // cmd pointer required
 void freeLog(Command *cmdLog){
     struct Command *temp = cmdLog;
@@ -69,7 +68,10 @@ void printLog(Command *myLog){
         return;
     }
 }
-
+ 
+ 
+ 
+// man getline -> ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 
 char *get_line(void){
   char *line = NULL;
@@ -135,17 +137,17 @@ char **split_line(char *line){
   }
   
   tokens[i] = NULL;
-  
+  /*
   if(strcmp(tokens[0], "print") == 0){
   	for(int k = 2; tokens[k] != NULL; k++){
   		strcat(tokens[1], " ");
   		strcat(tokens[1], tokens[k]);
   	}
   	printf("cat tokens %s\n", tokens[1]);
-  }
+  }*/
 
   
-  printf("tokens %s\n", tokens[0]);
+  printf("tokens %s\n", tokens[1]);
   return(tokens);
 }
 
@@ -209,30 +211,50 @@ int execute_command(char **tokens, EnvVar variables[]){
   case 4: //printing
   	int i = 1;
   	int j = 0;
+  	char* print_line;	
+	print_line = malloc(sizeof(char) * strlen(tokens)*150);
   	//EnvVar *current = &List;
   	while(tokens[i] != NULL){
+  		//printf("Inside while loop Tokens %s\n", tokens[i]);
+  		//printf("Inside while loop Tokens[0] %c\n", tokens[i][0]);
   		if(tokens[i][0] == '$'){
+  			char *compare;
+  			compare = malloc(sizeof(char *) * strlen(tokens[i]));
+  			
+  			strncpy(compare, tokens[i]+1, strlen(tokens[i])-1);
+  			
 		  	while(variables[j].name != NULL){
-		  		printf("print from exec list %s\n", variables[j].value);
-		  		//current = current->next;
+		  		if(strcmp(variables[j].name, compare) == 0){
+		  			//printf("print from exec list %s\n", variables[j].value);
+		  			//current = current->next;
+		  			variables[j].value[strcspn(variables[j].value, "\n")] = 0;
+		  			strcat(print_line, variables[j].value);
+		  			strcat(print_line, " ");
+		  		}
 		  		j++;
 		  	}
+		  	j = 0;
 		  	/*
 		  	for(j = 0; j < 1; j++){
 		  		printf("print from exec list %s\n", variables[j].value);
 		  	}*/
 		}
+		else{
+			strcat(print_line, tokens[i]);
+			strcat(print_line, " ");
+		}
 		i++;
 	}
+	printf("Final print: %s\n", print_line);
     return(1);
   
   case 5: //exit
-    // printf("exit");
-    printf("Bye!\n");
+    printf("exit");
+    printf("Bye!");
     //exit(0);
     return 0;
-
-  case 6: //testing log
+    
+  case 6:
     printf("testing log\n");
     
     struct Command *newLog = createLog("print", 0, NULL);
@@ -353,7 +375,6 @@ char **save_var(char* lineptr){
  	int max_array_size = 20;
  	int current_array_size = 0;
  	EnvVar variables[max_array_size];
-  struct Command *shellLog = NULL;
  	
  	if(ac == 1){
  		printf("hello");
@@ -381,8 +402,8 @@ char **save_var(char* lineptr){
 		 					variables[current_array_size].name = tokens[0];
 		 					variables[current_array_size].value = tokens[1];
 	 					
-		 					printf("List var check %s\n", variables[current_array_size].name);
-							printf("List value check %s\n", variables[current_array_size].value);
+		 					//printf("List var check %s\n", variables[current_array_size].name);
+							//printf("List value check %s\n", variables[current_array_size].value);
 						}
 						current_array_size++; 
 						
@@ -410,6 +431,31 @@ char **save_var(char* lineptr){
  		printf("bye");
  	}
  	(void)argv;
-
+ 	
+ 	/*char *prompt = "cshell$ ";
+ 	char *lineptr = "temp";
+ 	size_t n = 0;
+ 	char *isExiting = "";
+ 	
+ 	//char cwd[1024];
+ 	//getcwd(cwd, sizeof(cwd));
+ 	//printf("\nDir: %s\n", cwd);
+ 	
+ 	(void)ac;
+ 	(void)argv;
+ 	
+ 	while (strcmp(isExiting, "exit\n") != 0){
+	 	printf("%s", prompt);
+	 	getline(&lineptr, &n, stdin);
+	 	isExiting = lineptr;
+	 	printf("%s\n", isExiting);
+	 	int x = strcmp(isExiting, "exit\n");
+	 	printf("%d", x);
+	 	
+	 	//free(lineptr);
+ 	}
+ 	
+ 	free(lineptr);
+ 	printf("\nBye!\n");*/
  	return (0); 
  }
