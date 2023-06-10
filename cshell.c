@@ -16,12 +16,13 @@
     // original line: "return value"
     int value;
     struct Command *preLog;
-    // 
  }Command;
 
 // man getline -> ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 
+
 // free up log struct
+// cmd pointer required
 void freeLog(Command *cmdLog){
     struct Command *temp = cmdLog;
     while(cmdLog != NULL){
@@ -33,6 +34,7 @@ void freeLog(Command *cmdLog){
 }
 
 // this function creates log, called everytime a input command is being processed
+// cmd pointer required
 struct Command *createLog(char *cmdName, int successFail, struct Command *preCmd){
 
     Command *cmdLog;
@@ -45,22 +47,23 @@ struct Command *createLog(char *cmdName, int successFail, struct Command *preCmd
     cmdLog -> value = successFail;
 
     if(preCmd != NULL){
-        cmdLog -> preLog = NULL;
-    }else{
         cmdLog -> preLog = preCmd;
+    }else{
+        cmdLog -> preLog = NULL;
     }
 
     return cmdLog;
 }
 
 // use this function to print out log
+// cmd pointer required
 void printLog(Command *myLog){
 
     // recursive call
     if(myLog != NULL){
         printLog(myLog -> preLog);
-        printf("%s\n", asctime(&(myLog->time)));
-        printf(" %s\n", myLog->name);
+        printf("%s", asctime(&(myLog->time)));
+        printf(" %s %d\n", myLog->name, myLog->value);
     // base case
     }else{
         return;
@@ -150,7 +153,7 @@ char **split_line(char *line){
 
 // man execve
 int execute_command(char **tokens, EnvVar variables[]){
-  int numofcomm = 5, switchcomm = 0;
+  int numofcomm = 6, switchcomm = 0;
   char *listofcomm[numofcomm];
 
   listofcomm[0] = "ls";
@@ -158,6 +161,7 @@ int execute_command(char **tokens, EnvVar variables[]){
   listofcomm[2] = "whoami";
   listofcomm[3] = "print";
   listofcomm[4] = "exit"; 
+  listofcomm[5] = "log";
   //printf("!as%d", switchcomm);
   
   for (int i = 0; i < numofcomm; i++){
@@ -223,10 +227,20 @@ int execute_command(char **tokens, EnvVar variables[]){
     return(1);
   
   case 5: //exit
-    printf("exit");
-    printf("Bye!");
+    // printf("exit");
+    printf("Bye!\n");
     //exit(0);
     return 0;
+
+  case 6: //testing log
+    printf("testing log\n");
+    
+    struct Command *newLog = createLog("print", 0, NULL);
+    struct Command *newLog2 = createLog("log", 0, newLog);
+
+    printLog(newLog2);
+    freeLog(newLog2);
+    return (1);
 
   default:
     break;   
