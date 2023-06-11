@@ -10,7 +10,9 @@
  	//struct EnvVar * next;
  } EnvVar;
 
-int logSize;
+
+
+int LOGSIZE;
 
 typedef struct Command{
   char *name;
@@ -19,43 +21,41 @@ typedef struct Command{
 }Command;
 
 // takes in an array of Command struct
-void printLog(Command **myLogs){
+void printLog(Command myLogs[]){
 
-  for(int i = 0; i < logSize; i++){
-    printf("%s", asctime(&(myLogs[i]->time)));
-    printf(" %s %d\n", myLogs[i]->name, myLogs[i]->returnVal);
+  for(int i = 0; i < LOGSIZE; i++){
+    printf("%s", asctime(&(myLogs[i].time)));
+    printf(" %s %d\n", myLogs[i].name, myLogs[i].returnVal);
   }
 
   return;
 }
 
 
-void freeLogs(Command **oldLogs){
+Command *createLog(Command *oldLogs, char *cmdName, int cmdVal){
 
-  for(int i = 0; i < logSize; i++){
-    free(oldLogs[i]->name);
-    free(oldLogs[i]);
-  }
-
-  return;
-}
-
-
-Command** createLog(Command **oldLogs, char *cmdName, int cmdVal){
-
-  Command **newLogs = malloc((logSize += 1) * sizeof(Command));
+  LOGSIZE++;
+  Command *newLogs = malloc(sizeof(Command)*LOGSIZE);
   
-  if(oldLogs != NULL){
-    memcpy(oldLogs, newLogs, sizeof(newLogs));
+  // copy older log into new log if old log existed
+  for(int i = 0; i < LOGSIZE-1; i++){
+    newLogs[i] = oldLogs[i];
   }
 
-  Command *temp = malloc(1 * sizeof(Command));
-  temp -> name = malloc(128*sizeof(char));
-  strcpy(temp->name, cmdName);
-  temp -> returnVal = cmdVal;
-  memcpy(temp, newLogs[logSize-1], sizeof(temp));
+  // creating new single log entry, and copy into the new logs array
+  Command temp = {.name = cmdName, .returnVal = cmdVal, .time = NULL };
 
-  freeLogs(oldLogs);
+  // init time 
+  time_t rawtime;
+  time(&rawtime);
+  temp.time = *localtime(&rawtime);
+
+
+  // problem
+  newLogs[LOGSIZE-1] = temp;
+  // memcpy(newLogs[LOGSIZE-1], temp, sizeof(temp));
+
+
   return newLogs;
 }
 
@@ -138,7 +138,7 @@ char **split_line(char *line){
 
 
 // man execve
-int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
+int execute_command(char **tokens, EnvVar variables[], Command myLogs[]){
   int numofcomm = 7, switchcomm = 0;
   char *listofcomm[numofcomm];
 
@@ -167,7 +167,7 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     else{
     	wait(NULL);
     }    
-    myLogs[0] = createLog(myLogs[0], "ls", 0);
+    myLogs = createLog(myLogs, "ls", 0);
     return (1);
 
   case 2: //pwd
@@ -177,7 +177,7 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     else{
     	wait(NULL);
     }   
-    myLogs[0] = createLog(myLogs[0], "pwd", 0);
+    myLogs = createLog(myLogs, "pwd", 0);
     return (1);
 
   case 3: //whoami
@@ -187,7 +187,7 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     else{
     	wait(NULL);
     } 
-    myLogs[0] = createLog(myLogs[0], "whoami", 0);
+    myLogs = createLog(myLogs, "whoami", 0);
     return (1);
 
   case 4: //printing
@@ -237,8 +237,8 @@ int execute_command(char **tokens, EnvVar variables[], Command ***myLogs){
     return 0;
     
   case 6:
-    printf("testing log\n");
-    printLog(myLogs[0]);
+    printf("testing log rework\n");
+    printLog(myLogs);
     return (1);
 
 
@@ -335,12 +335,12 @@ char **save_var(char* lineptr){
  
  int main(int ac, char **argv){
 
-  Command ***myLogs = NULL;
-  logSize = 0;
+  LOGSIZE = 0;
  	int max_array_size = 20;
  	int current_array_size = 0;
  	EnvVar variables[max_array_size];
- 	
+  Command myLogs[max_array_size];
+
  	if(ac == 1){
  		printf("hello");
  		char *prompt = "cshell$ ";
@@ -357,11 +357,8 @@ char **save_var(char* lineptr){
  			//parse line
  			if(lineptr[0] == '$'){
  				tokens = save_var(lineptr);
- 				//printf("List var check %s\n", tokens[0]);
-				//printf("List value check %s\n", tokens[1]);
  				if(tokens[0] != NULL && tokens[1] != NULL){
- 					//envList->name = tokens[0];
- 					//envList->value = tokens[1];
+
  					
  						if(variables[current_array_size].name == NULL){
 		 					variables[current_array_size].name = tokens[0];
@@ -384,7 +381,7 @@ char **save_var(char* lineptr){
  				tokens = split_line(lineptr);
  				//printf("%s\n", *tokens);
  					
- 				if(execute_command(tokens, variables, myLogs) == 0){
+ 				if(execute_command(tokens, variables, &myLogs) == 0){
 					return(0);
 				}
 			}
