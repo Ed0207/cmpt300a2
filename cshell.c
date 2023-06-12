@@ -382,9 +382,9 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
 char **save_var(char* lineptr){ 
 	char** tokens;
-	char* token;
-	
-	token = malloc(sizeof(char) * strlen(lineptr));
+
+	// char* token;
+	// token = malloc(sizeof(char) * strlen(lineptr));
 	
 	for(int i = 0; i < strlen(lineptr); i++){
 		if(lineptr[i] == ' ' || lineptr[i] == '/'){
@@ -464,7 +464,7 @@ char **save_var(char* lineptr){
  				tokens = save_var(lineptr);
  				//printf("List var check if %s\n", tokens[0]);
 				//printf("List value check if %s\n", tokens[1]);
- 				if(tokens[0] != NULL && tokens[1] != NULL){
+ 				if(tokens != NULL && tokens[0] != NULL && tokens[1] != NULL){
  					
  					for(int i = 0; i <= current_array_size; i++){
  						//printf("name check %s what is here\n", variables[i].name);
@@ -496,7 +496,7 @@ char **save_var(char* lineptr){
 					}					
  				}
  				else{
- 					printf("Something went wrong!\n");
+ 					// printf("Something went wrong!\n");
  			 	}
  			}
  			else{
