@@ -111,7 +111,7 @@ char **split_line(char *line){
   	const char *delim = " \n"; 
   	char* line_copy = NULL;
   
-  	line_copy = malloc(sizeof(char) * 26);
+  	line_copy = malloc(sizeof(char) * strlen(line)* 32);
   
   	strcpy(line_copy, line);
 
@@ -144,7 +144,7 @@ char **split_line(char *line){
 
 // man execve
 int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
-	int numofcomm = 7, switchcomm = 0;
+	int numofcomm = 8, switchcomm = 0;
   	char *listofcomm[numofcomm];
 
   	listofcomm[0] = "ls";
@@ -154,6 +154,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   	listofcomm[4] = "exit"; 
   	listofcomm[5] = "log";
   	listofcomm[6] = "theme";
+  	listofcomm[7] = "uppercase";
   
   
 	for (int i = 0; i < numofcomm; i++){
@@ -220,7 +221,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 			  	temp++;
 		  	}
   		}
-    		*myLogs= createLog( "ls", 0, *myLogs);
+    		*myLogs = createLog( "ls", 0, *myLogs);
 		return (1);
 
   	case 2: //pwd
@@ -230,7 +231,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     		else{
     			wait(NULL);
     		}   
-    		*myLogs= createLog( "pwd", 0, *myLogs);
+    		*myLogs = createLog( "pwd", 0, *myLogs);
     		return (1);
 
   	case 3: //whoami
@@ -240,8 +241,9 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     		else{
     			wait(NULL);
     		} 
-    		*myLogs= createLog( "whoami", 0, *myLogs);
+    		*myLogs = createLog( "whoami", 0, *myLogs);
     		return (1);
+    		
   	case 4: //printing
 	  	int i = 1;
 	  	int j = 0;
@@ -304,7 +306,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		}
 		printf("Final print: %s\n", print_line);
 		free(print_line);
-		*myLogs= createLog( "print", 0, *myLogs);
+		*myLogs = createLog( "print", 0, *myLogs);
 	    	return(1);
   
   	case 5: //exit
@@ -334,6 +336,38 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		    	*myLogs= createLog( "theme", -1, *myLogs);
 		}
 		return 1;
+		
+	case 8://uppercase
+    		int charac = 0;
+    		int word = 1;
+    		char* upper_line;	
+		upper_line = malloc(sizeof(char) * strlen(tokens[0])*1500);
+		upper_line[0] = '\0';		
+    		while(tokens[word] != NULL){
+    			char *compare = NULL;
+  			compare = malloc(sizeof(char *) * strlen(tokens[word])*150);
+  			//printf("print from before compare list %s\n", compare);
+  			
+  			strncpy(compare, tokens[word], strlen(tokens[word]));
+  			compare[strlen(tokens[word])] = '\0';
+  			//printf("upper print: %s\n", upper_line);
+		  	while(compare[charac] != NULL || compare[charac] != '\0'){
+		  		//printf("while upper print: %s\n", upper_line);
+		  		if(tokens[word][charac] >= 'a' && tokens[word][charac] <= 'z'){
+		  			tokens[word][charac] = tokens[word][charac] - 32;
+		  		}	 
+		  		charac++; 		
+		  	}
+		  	strcat(upper_line, tokens[word]);
+		  	strcat(upper_line, " ");
+		  	free(compare);
+		  	charac = 0;
+		  	word++;
+		}
+	  	printf("Final print: %s\n", upper_line);
+	  	free(upper_line);
+		*myLogs = createLog( "uppercase", 0, *myLogs);
+		return (1);
     
   	default:
     		break;   
@@ -488,7 +522,7 @@ char **save_var(char* lineptr){
 	 	
  		//printf("bye");
  		FILE *fp;
- 		fp = fopen("script.txt", "r");
+ 		fp = fopen("myscript.txt", "r");
  		if(fp == NULL){
  			printf("No file found!\n");
  		}
