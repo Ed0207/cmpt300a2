@@ -319,6 +319,10 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		return (1);
 
   	case 7://theme
+		if(tokens[1] == NULL){
+			printf("Missing keyword or command, or permission problem\n");
+			break;
+		}
 		if(strcmp(tokens[1], "red") == 0){
 			printf("%c[%dm", 0x1B, 31);
 		    	*myLogs= createLog( "theme", 0, *myLogs);
