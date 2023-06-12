@@ -1,9 +1,9 @@
 FLAGS = -g -Wall -o
 
-all: cshell
+all: cshell.c
 
 cshell: cshell.c
 	gcc $(FLAGS) cshell cshell.c
 
 clean: 
-	rm cshell
+	rm -rf *.o cshell
