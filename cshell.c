@@ -10,31 +10,47 @@
  	//struct EnvVar * next;
  } EnvVar;
 
-typedef struct{
+typedef struct Command{
     char *name;
     struct tm time;
-    // original line: "return value"
     int value;
     struct Command *preLog;
  }Command;
  
  
- 
  // free up log struct
 // cmd pointer required
 void freeLog(Command *cmdLog){
-    struct Command *temp = cmdLog;
+    Command *temp = cmdLog;
     while(cmdLog != NULL){
         temp = cmdLog->preLog;
+        // free(cmdLog->name);
         free(cmdLog);
         cmdLog = temp;
     }
     return;
 }
 
+// use this function to print out log
+// cmd pointer required
+void printLog(Command *mylogs){
+
+    // recursive call
+    if(mylogs != NULL){
+        printLog(mylogs -> preLog);
+        // asctime return string appended with \n
+        printf("%s", asctime(&(mylogs->time)));
+        printf(" %s %d\n", mylogs->name, mylogs->value);
+    // base case
+    }else{
+        return;
+    }
+}
+ 
+
 // this function creates log, called everytime a input command is being processed
 // cmd pointer required
-struct Command *createLog(char *cmdName, int successFail, struct Command *preCmd){
+Command *createLog(char *cmdName, int successFail, Command *preCmd){
 
     Command *cmdLog;
     cmdLog = malloc(sizeof(Command));
@@ -51,24 +67,10 @@ struct Command *createLog(char *cmdName, int successFail, struct Command *preCmd
         cmdLog -> preLog = NULL;
     }
 
+    // printLog(cmdLog);
+
     return cmdLog;
 }
-
-// use this function to print out log
-// cmd pointer required
-void printLog(Command *myLog){
-
-    // recursive call
-    if(myLog != NULL){
-        printLog(myLog -> preLog);
-        printf("%s", asctime(&(myLog->time)));
-        printf(" %s %d\n", myLog->name, myLog->value);
-    // base case
-    }else{
-        return;
-    }
-}
- 
  
  
 // man getline -> ssize_t getline(char **lineptr, size_t *n, FILE *stream)
@@ -154,7 +156,7 @@ char **split_line(char *line){
 
 
 // man execve
-int execute_command(char **tokens, EnvVar variables[]){
+int execute_command(char **tokens, EnvVar variables[],  Command **myLogs){
   int numofcomm = 7, switchcomm = 0;
   char *listofcomm[numofcomm];
 
@@ -205,7 +207,7 @@ int execute_command(char **tokens, EnvVar variables[]){
 	  		
 	  	}
   	}*/
-    
+    *myLogs = createLog( "ls", 0, *myLogs);
     return (1);
 
   case 2: //pwd
@@ -215,6 +217,7 @@ int execute_command(char **tokens, EnvVar variables[]){
     else{
     	wait(NULL);
     }   
+	*myLogs = createLog( "pwd", 0, *myLogs);
     return (1);
 
   case 3: //whoami
@@ -224,6 +227,7 @@ int execute_command(char **tokens, EnvVar variables[]){
     else{
     	wait(NULL);
     } 
+	*myLogs = createLog( "whoami", 0, *myLogs);
     return (1);
   case 4: //printing
   	int i = 1;
@@ -285,17 +289,12 @@ int execute_command(char **tokens, EnvVar variables[]){
   
   case 5: //exit
     printf("Bye!\n");
+	freeLog(*myLogs);
     //exit(0);
     return 0;
     
   case 6://log
-    printf("testing log\n");
-    
-    struct Command *newLog = createLog("print", 0, NULL);
-    struct Command *newLog2 = createLog("log", 0, newLog);
-    
-    printLog(newLog2);
-    freeLog(newLog2);
+	printLog(*myLogs);
     return (1);
 
   case 7://theme
@@ -432,7 +431,7 @@ char **save_var(char* lineptr){
  int main(int ac, char **argv){
  	
  	//EnvVar *envList = (EnvVar *)malloc(sizeof(EnvVar));
- 	
+ 	Command *myLogs;
  	
  	if(ac == 1){
 	 	int max_array_size = 20;
@@ -471,7 +470,7 @@ char **save_var(char* lineptr){
 							
 						}
 						else{
-							if(strcmp(variables[i].name, tokens[0]) == 0){
+							if(strcmp(variables[i].name, tokens[0] == 0)){
 	 							//printf("current size %d\n", current_array_size);
 	 							variables[i].value = NULL;
 	 							variables[i].value = tokens[1];
@@ -493,7 +492,7 @@ char **save_var(char* lineptr){
  				tokens = split_line(lineptr);
  				//printf("%s\n", *tokens);
  					
- 				if(execute_command(tokens, variables) == 0){
+ 				if(execute_command(tokens, variables, &myLogs) == 0){
 					return(0);
 				}
 			}
@@ -543,7 +542,7 @@ char **save_var(char* lineptr){
  			}
  			else{
  				script_tokens = split_line(script_lineptr); 					
- 				if(execute_command(script_tokens, script_variables) == 0){
+ 				if(execute_command(script_tokens, script_variables,&myLogs)  == 0){
 					return(0);
 				}
 			}
