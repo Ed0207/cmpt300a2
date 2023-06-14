@@ -4,7 +4,7 @@
  #include <string.h>
  #include <time.h>
  #include <stdbool.h>
- 
+ #include <sys/wait.h>
  
  
 typedef struct {
@@ -14,7 +14,7 @@ typedef struct {
 
 
 
-typedef struct{
+typedef struct Command{
 	char *name;
 	struct tm time;
 	int value;
@@ -395,7 +395,8 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     
   	default:
   		*myLogs = createLog( tokens[0], -1, *myLogs);
-    		break;   
+		printf("Missing keyword or command, or permission problem\n");
+    	break;   
 
  	}
  	
@@ -406,9 +407,9 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
 char **save_var(char* lineptr){ 
 	char** tokens;
-	char* token;
-	
-	token = malloc(sizeof(char) * strlen(lineptr));
+
+	// char* token;
+	// token = malloc(sizeof(char) * strlen(lineptr));
 	
 	for(int i = 0; i < strlen(lineptr); i++){
 		if(lineptr[i] == ' ' || lineptr[i] == '/'){
@@ -560,87 +561,89 @@ char **save_var(char* lineptr){
  		int script_max_array_size = 20;
 	 	int script_current_array_size = 0;
 	 	EnvVar *script_variables;
+		char *fileName = argv[1];
 	 	
 	 	script_variables = malloc(sizeof(EnvVar) * script_max_array_size);
 	 	
 	 	
  		//printf("bye");
  		FILE *fp;
- 		fp = fopen("myscript.txt", "r");
+ 		fp = fopen(fileName, "r");
  		if(fp == NULL){
- 			printf("No file found!\n");
- 		}
- 		
- 		const unsigned MAX_LENGTH = 256;
- 		char buffer[MAX_LENGTH];
- 		
- 		char *script_lineptr = "";
- 		char **script_tokens;
- 		
- 		while(fgets(buffer, MAX_LENGTH, fp)){
- 			printf("%s", buffer);
- 			
- 			script_lineptr = buffer;
- 			
- 			//printf("%c\n", script_lineptr[0]);
- 			//parse line
- 			if(script_lineptr[0] == '$'){
- 				script_tokens = save_var(script_lineptr);
- 				if(script_tokens != NULL){
- 					
- 						if(script_variables[script_current_array_size].name == NULL){
-		 					script_variables[script_current_array_size].name = script_tokens[0];
-		 					script_variables[script_current_array_size].value = script_tokens[1];
-						}
-						script_current_array_size++; 
-											
- 				}
- 				if(script_tokens[0] != NULL && script_tokens[1] != NULL){
- 					
- 					for(int i = 0; i <= script_current_array_size; i++){
- 						//printf("name check %s what is here\n", variables[i].name);
- 						//printf("tokens check %s what is here\n", tokens[0]);
- 							 						
- 						if(script_variables[i].name == NULL){
-		 					script_variables[i].name = script_tokens[0];
-		 					script_variables[i].value = script_tokens[1];
-	 					
-		 					//printf("List var check %s\n", variables[i].name);
-							//printf("List value check %s\n", variables[i].value);
-							
-						}
-						else{
-							if(strcmp(script_variables[i].name, script_tokens[0]) == 0){
-	 							//printf("current size %d\n", current_array_size);
-	 							script_variables[i].value = NULL;
-	 							script_variables[i].value = script_tokens[1];
-	 							script_current_array_size = script_current_array_size-1; 
-	 						}
- 						}						
-					
+ 			printf("Unable to read script file: %s\n", fileName);
+ 		}else{
+						
+			const unsigned MAX_LENGTH = 256;
+			char buffer[MAX_LENGTH];
+
+			char *script_lineptr = "";
+			char **script_tokens;
+			
+			while(fgets(buffer, MAX_LENGTH, fp)){
+				printf("%s", buffer);
+				
+				script_lineptr = buffer;
+				
+				//printf("%c\n", script_lineptr[0]);
+				//parse line
+				if(script_lineptr[0] == '$'){
+					script_tokens = save_var(script_lineptr);
+					if(script_tokens != NULL){
+						
+							if(script_variables[script_current_array_size].name == NULL){
+								script_variables[script_current_array_size].name = script_tokens[0];
+								script_variables[script_current_array_size].value = script_tokens[1];
+							}
+							script_current_array_size++; 
+												
 					}
-					//printf("current size %d\n", current_array_size);
-					script_current_array_size++; 
-					if(script_current_array_size >= script_max_array_size){
-						script_max_array_size *= 2;
-						script_variables = (EnvVar*)(realloc(script_variables, sizeof(EnvVar) * script_max_array_size));
-					}					
- 				}
- 				else{
- 					printf("Something went wrong!\n");
- 			 	}
- 			 	
- 			}
- 			else{
- 				script_tokens = split_line(script_lineptr); 					
- 				if(execute_command(script_tokens, script_variables, &myLogs) == 0){
-					return(0);
+					if(script_tokens[0] != NULL && script_tokens[1] != NULL){
+						
+						for(int i = 0; i <= script_current_array_size; i++){
+							//printf("name check %s what is here\n", variables[i].name);
+							//printf("tokens check %s what is here\n", tokens[0]);
+														
+							if(script_variables[i].name == NULL){
+								script_variables[i].name = script_tokens[0];
+								script_variables[i].value = script_tokens[1];
+							
+								//printf("List var check %s\n", variables[i].name);
+								//printf("List value check %s\n", variables[i].value);
+								
+							}
+							else{
+								if(strcmp(script_variables[i].name, script_tokens[0]) == 0){
+									//printf("current size %d\n", current_array_size);
+									script_variables[i].value = NULL;
+									script_variables[i].value = script_tokens[1];
+									script_current_array_size = script_current_array_size-1; 
+								}
+							}						
+						
+						}
+						//printf("current size %d\n", current_array_size);
+						script_current_array_size++; 
+						if(script_current_array_size >= script_max_array_size){
+							script_max_array_size *= 2;
+							script_variables = (EnvVar*)(realloc(script_variables, sizeof(EnvVar) * script_max_array_size));
+						}					
+					}
+					else{
+						printf("Something went wrong!\n");
+					}
+					
+				}
+				else{
+					script_tokens = split_line(script_lineptr); 					
+					if(execute_command(script_tokens, script_variables, &myLogs) == 0){
+						return(0);
+					}
 				}
 			}
- 		}
- 		free(script_variables);
- 		fclose(fp);
- 		printf("Bye!\n");
+			free(script_variables);
+			fclose(fp);
+			printf("Bye!\n");
+		}
  	}
  	return (0); 
  }

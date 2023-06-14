@@ -1,6 +1,6 @@
 FLAGS = -g -Wall -o
 
-all: cshell.c
+all: cshell
 
 cshell: cshell.c
 	gcc $(FLAGS) cshell cshell.c
