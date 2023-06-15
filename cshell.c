@@ -584,7 +584,7 @@ char **save_var(char* lineptr){
 	 			script_lineptr = buffer;
 	 			
 	 			if(script_lineptr[0] == '$'){
-	 				script_tokens = save_var(script_lineptr);
+	 				script_tokens = split_line(script_lineptr);
 	 				
 	 				int curr = 0;
 	 				int incr = 0;
