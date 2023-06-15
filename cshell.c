@@ -13,9 +13,10 @@ typedef struct {
  	char *value;
 } EnvVar;
 
+int user_input_len;
+ 
 
-
-typedef struct{
+typedef struct Command{
 	char *name;
 	struct tm time;
 	int value;
@@ -126,6 +127,7 @@ char **split_line(char *line){
     		numtokens++;    
     		token = strtok(NULL, delim);  
   	}
+	user_input_len = numtokens;
   	numtokens++;
   
 	// allocate memory for the array of strings
@@ -160,6 +162,9 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   	listofcomm[6] = "theme";
   	listofcomm[7] = "uppercase";
   	
+	if(user_input_len == 0){
+		return 1;
+	}
   	
   	if(tokens[0][0] == '$'){
 		int loc = 0;			
@@ -188,7 +193,14 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   
   	switch (switchcomm) {
   	case 1: //ls
-        	int temp = 1;
+
+		if(user_input_len > 2){
+			printf("Error: too many arguments detected\n");
+			*myLogs = createLog( "too many argument", -1, *myLogs);
+			return 1;
+		}
+
+        int temp = 1;
   	
   		if(tokens[temp] == NULL){
   			if(fork() == 0){
@@ -253,6 +265,13 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		return (1);
 
   	case 2: //pwd
+
+			if(user_input_len > 1){
+				printf("Error: too many arguments detected\n");
+				*myLogs = createLog( "too many argument", -1, *myLogs);
+				return 1;
+			}
+
     		if(fork() == 0){
     			execvp(tokens[0], tokens);
     		}
@@ -263,6 +282,13 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     		return (1);
 
   	case 3: //whoami
+
+			if(user_input_len > 1){
+				printf("Error: too many arguments detected\n");
+				*myLogs = createLog( "too many argument", -1, *myLogs);
+				return 1;
+			}
+
     		if(fork() == 0){
     			execvp(tokens[0], tokens);
     		}
@@ -319,9 +345,15 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 	    	return(1);
   
   	case 5: //exit
-    		printf("Bye!\n");
+		if(user_input_len > 2){
+			printf("Error: too many arguments detected\n");
+			*myLogs = createLog( "too many argument", -1, *myLogs);
+			return 1;
+		}else{
+			printf("Bye!\n");
     		freeLog(*myLogs);
-    		return 0;
+		}
+    	return 0;
     
   	case 6://log
     		printLog(*myLogs);
@@ -329,6 +361,13 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		return (1);
 
   	case 7://theme
+
+		if(user_input_len > 2){
+			printf("Error: too many arguments detected\n");
+			*myLogs = createLog( "too many argument", -1, *myLogs);
+			return 1;
+		}
+
   		if(tokens[1] == NULL){
 			printf("Missing keyword or command, or permission problem\n");
 			*myLogs= createLog( "theme", -1, *myLogs);			
@@ -384,7 +423,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   	default:
   		*myLogs = createLog( tokens[0], -1, *myLogs);
   		printf("Missing keyword or command, or permission problem\n");
-    		break;   
+    	break;   
 
  	}
  	
@@ -394,10 +433,8 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
 
 char **save_var(char* lineptr){ 
-	char** tokens = NULL;
-	char* token;
 	
-	token = malloc(sizeof(char) * strlen(lineptr));
+	char** tokens = NULL;
 	
 	for(int i = 0; i < strlen(lineptr); i++){
 		if(lineptr[i] == ' '){
@@ -448,7 +485,9 @@ char **save_var(char* lineptr){
 
  
  int main(int acm, char **argv){
+
  	Command *myLogs; 
+	user_input_len = 0;
  		
  	//Interactive mode if acm==1 and script mode otherwise
  	if(acm == 1){
@@ -600,47 +639,6 @@ char **save_var(char* lineptr){
 		 				curr++;
 	 				}
 	 				
-	 				
-	 				/*if(script_tokens != NULL){
-	 					
-	 						if(script_variables[script_current_array_size].name == NULL){
-			 					script_variables[script_current_array_size].name = script_tokens[0];
-			 					script_variables[script_current_array_size].value = script_tokens[1];
-							}
-							script_current_array_size++; 
-												
-	 				}
-	 				if(script_tokens[0] != NULL && script_tokens[1] != NULL){
-	 					
-	 					for(int i = 0; i <= script_current_array_size; i++){
-	 						//printf("name check %s what is here\n", variables[i].name);
-	 						//printf("tokens check %s what is here\n", tokens[0]);
-	 							 						
-	 						if(script_variables[i].name == NULL){
-			 					script_variables[i].name = script_tokens[0];
-			 					script_variables[i].value = script_tokens[1];
-		 					
-			 					//printf("List var check %s\n", variables[i].name);
-								//printf("List value check %s\n", variables[i].value);
-								
-							}
-							else{
-								if(strcmp(script_variables[i].name, script_tokens[0]) == 0){
-		 							//printf("current size %d\n", current_array_size);
-		 							script_variables[i].value = NULL;
-		 							script_variables[i].value = script_tokens[1];
-		 							script_current_array_size = script_current_array_size-1; 
-		 						}
-	 						}						
-						
-						}
-						//printf("current size %d\n", current_array_size);
-						script_current_array_size++; 
-						if(script_current_array_size >= script_max_array_size){
-							script_max_array_size *= 2;
-							script_variables = (EnvVar*)(realloc(script_variables, sizeof(EnvVar) * script_max_array_size));
-						}					
-	 				}*/
 	 				if(!saving_var){
 						if(execute_command(script_tokens, script_variables, &myLogs) == 0){
 							return(0);
