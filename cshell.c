@@ -7,6 +7,7 @@
  #include <sys/wait.h>
  
  
+ 
 typedef struct {
  	char *name;
  	char *value;
@@ -14,7 +15,7 @@ typedef struct {
 
 
 
-typedef struct Command{
+typedef struct{
 	char *name;
 	struct tm time;
 	int value;
@@ -110,12 +111,15 @@ char **split_line(char *line){
   	int numtokens = 0;
   	const char *delim = " \n"; 
   	char* line_copy = NULL;
+  	char* another_line_copy = NULL;
   
   	line_copy = malloc(sizeof(char) * strlen(line)* 32);
+  	another_line_copy = malloc(sizeof(char) * strlen(line)* 32);
   
   	strcpy(line_copy, line);
+  	strcpy(another_line_copy, line);
 
-  	token = strtok(line, delim);
+  	token = strtok(another_line_copy, delim);
   
 	// calculate number of tokens
   	while (token != NULL) {
@@ -158,7 +162,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   	
   	
   	if(tokens[0][0] == '$'){
-		printf("first test print: %s\n", tokens[1]);
+		//printf("first test print: %s\n", tokens[1]);
 		int loc = 0;			
 		char *compare = NULL;
 		compare = malloc(sizeof(char *) * strlen(tokens[0])*150);	  			
@@ -166,9 +170,11 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		compare[strlen(tokens[0])-1] = '\0';
   		
   		while(variables[loc].name != NULL){
-	  		//printf("print from while state value list %s\n", variables[temp].value);
-	  		if(strcmp(variables[loc].name, compare) == 0){
+	  		//printf("print from while state value list %s what is this\n", variables[loc].value);
+	  		if(strcmp(variables[loc].name, compare) == 0){	  
+	  			variables[loc].value[strcspn(variables[loc].value, "\n")] = 0;			
 	  			tokens[0] = variables[loc].value; 
+	  			//printf("what is tokens[0] %s at this moment\n", tokens[0]);
 	  		}
 	  		loc++;
 	  		//printf("j goes up %d\n", j);
@@ -217,7 +223,13 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 				  		//printf("print from while state value list %s\n", variables[temp].value);
 				  		if(strcmp(variables[k].name, compare) == 0){
 				  			//printf("test print: %s\n", tokens[1]);
-				  			tokens[temp] = "-al";
+				  			if(strcmp(tokens[temp], "-al") == 0){
+				  				tokens[temp] = "-al";
+				  			}
+				  			else{
+				  				tokens[temp] = "-l";
+				  			}
+				  			
 				  			if(fork() == 0){
 					    			execvp(tokens[0], tokens);
 							}
@@ -230,6 +242,15 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 				  	}		  		
 			  	}
 			  	else if(strcmp(tokens[temp], "-al") == 0){
+			  		//printf("else if tokens[temp]: %s\n", tokens[temp]);
+			  		if(fork() == 0){
+			    			execvp(tokens[0], tokens);
+					}
+					else{
+					    	wait(NULL);
+					}   
+			  	}
+			  	else if(strcmp(tokens[temp], "-l") == 0){
 			  		//printf("else if tokens[temp]: %s\n", tokens[temp]);
 			  		if(fork() == 0){
 			    			execvp(tokens[0], tokens);
@@ -336,6 +357,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     
   	case 6://log
     		printLog(*myLogs);
+    		*myLogs = createLog( "log", 0, *myLogs);
 		return (1);
 
   	case 7://theme
@@ -395,8 +417,8 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     
   	default:
   		*myLogs = createLog( tokens[0], -1, *myLogs);
-		printf("Missing keyword or command, or permission problem\n");
-    	break;   
+  		printf("Missing keyword or command, or permission problem\n");
+    		break;   
 
  	}
  	
@@ -406,15 +428,15 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
 
 char **save_var(char* lineptr){ 
-	char** tokens;
-
-	// char* token;
-	// token = malloc(sizeof(char) * strlen(lineptr));
+	char** tokens = NULL;
+	char* token;
+	
+	token = malloc(sizeof(char) * strlen(lineptr));
 	
 	for(int i = 0; i < strlen(lineptr); i++){
 		if(lineptr[i] == ' ' || lineptr[i] == '/'){
 			printf("Variable value expected\n");
-			return(NULL);
+			return(tokens);
 		}
 	}
 	
@@ -463,7 +485,7 @@ char **save_var(char* lineptr){
  
  int main(int acm, char **argv){
  	Command *myLogs; 
- 	(void)argv;
+ 	//(void)argv;
  		
  	//Interactive mode if acm==1 and script mode otherwise
  	if(acm == 1){
@@ -487,63 +509,100 @@ char **save_var(char* lineptr){
  			//parse line
  			if(lineptr[0] == '$'){
  				tokens = split_line(lineptr);
+ 				int curr = 0;
  				int incr = 0;
  				bool saving_var = false;
- 				while(tokens[0][incr] != NULL){
- 					if(tokens[0][incr] == '='){
- 						saving_var = true;
- 					} 
- 					incr++;
+ 				while(tokens[curr] != NULL){
+	 				while(tokens[curr][incr] != NULL){
+	 					if(tokens[curr][incr] == '='){
+	 						saving_var = true;
+	 						//printf("saving test\n");
+	 					} 
+	 					incr++;
+	 				}
+	 				incr = 0;
+	 				curr++;
  				}
  				
- 				
- 				printf("List var check if %s\n", tokens[0]);
+ 				//printf("List var check if %s\n", tokens[0]);
 				//printf("List value check if %s\n", tokens[1]);
 				//if((strcmp(tokens[1], "pwd") == 0) || (strcmp(tokens[1], "ls") == 0)){
 				if(!saving_var){
-					printf("here List value check if %s\n", tokens[0]);
+					//printf("here List value check if %s\n", tokens[0]);
 					if(execute_command(tokens, variables, &myLogs) == 0){
 						return(0);
 					}
 				}
- 				else if(tokens[0] != NULL && saving_var){
- 					myLogs = createLog( tokens[0] , 0, myLogs);
+ 				else if(tokens[0] != NULL && saving_var){ 					
+					char **temp_tokens;
+					temp_tokens = malloc(sizeof(char *) * strlen(lineptr));
+					
+					int j = 0;
+					while(tokens[j] != NULL){
+						temp_tokens[j] = malloc(sizeof(char *) * strlen(lineptr));
+						strcpy(temp_tokens[j], tokens[j]);
+						j++;
+					}
+					char* var_line;	
+					var_line = malloc(sizeof(char) * strlen(temp_tokens[0])*1500);
+					var_line[0] = '\0';
+									
  					tokens = save_var(lineptr);
  					
- 					for(int i = 0; i <= current_array_size; i++){
- 						//printf("name check %s what is here\n", variables[i].name);
- 						//printf("tokens check %s what is here\n", tokens[0]);
- 							 						
- 						if(variables[i].name == NULL){
-		 					variables[i].name = tokens[0];
-		 					variables[i].value = tokens[1];
-	 					
-		 					//printf("List var check %s\n", variables[i].name);
-							//printf("List value check %s\n", variables[i].value);
-							
+ 					if(tokens == NULL){
+					  	j = 0;
+					  	while(temp_tokens[j] != NULL){
+					  		strcat(var_line, temp_tokens[j]);
+					  		strcat(var_line, " ");
+					  		j++;
+					  	}
+					  	//printf("test print: %s\n", var_line);				  	
+ 						myLogs = createLog(var_line, -1, myLogs);
+ 					}
+ 					else{
+ 						j = 0;
+					  	while(temp_tokens[j] != NULL){
+					  		strcat(var_line, temp_tokens[j]);
+					  		strcat(var_line, " ");
+					  		j++;
+					  	}
+					  	
+ 						myLogs = createLog(var_line , 0, myLogs);
+	 					for(int i = 0; i <= current_array_size; i++){
+	 						//printf("name check %s what is here\n", variables[i].name);
+	 						//printf("tokens check %s what is here\n", tokens[0]);
+	 							 						
+	 						if(variables[i].name == NULL){
+			 					variables[i].name = tokens[0];
+			 					variables[i].value = tokens[1];
+		 					
+			 					//printf("List var check %s\n", variables[i].name);
+								//printf("List value check %s\n", variables[i].value);
+								
+							}
+							else{
+								if(strcmp(variables[i].name, tokens[0]) == 0){
+		 							//printf("current size %d\n", current_array_size);
+		 							variables[i].value = NULL;
+		 							variables[i].value = tokens[1];
+		 							current_array_size = current_array_size-1; 
+		 						}
+	 						}						
+						
 						}
-						else{
-							if(strcmp(variables[i].name, tokens[0]) == 0){
-	 							//printf("current size %d\n", current_array_size);
-	 							variables[i].value = NULL;
-	 							variables[i].value = tokens[1];
-	 							current_array_size = current_array_size-1; 
-	 						}
- 						}						
-					
-					}
-					//printf("current size %d\n", current_array_size);
-					current_array_size++; 
-					if(current_array_size >= max_array_size){
-						max_array_size *= 2;
-						variables = (EnvVar*)(realloc(variables, sizeof(EnvVar) * max_array_size));
+						//printf("current size %d\n", current_array_size);
+						current_array_size++; 
+						if(current_array_size >= max_array_size){
+							max_array_size *= 2;
+							variables = (EnvVar*)(realloc(variables, sizeof(EnvVar) * max_array_size));
+						}
 					}					
  				}
  				else{
  					printf("Something went wrong!\n");
  			 	}
  			}
- 			else{
+ 			else if(lineptr != NULL){
  				tokens = split_line(lineptr);
  				//printf("%s\n", *tokens);
  					
@@ -561,7 +620,7 @@ char **save_var(char* lineptr){
  		int script_max_array_size = 20;
 	 	int script_current_array_size = 0;
 	 	EnvVar *script_variables;
-		char *fileName = argv[1];
+	 	char *fileName  = argv[1];
 	 	
 	 	script_variables = malloc(sizeof(EnvVar) * script_max_array_size);
 	 	
@@ -571,54 +630,56 @@ char **save_var(char* lineptr){
  		fp = fopen(fileName, "r");
  		if(fp == NULL){
  			printf("Unable to read script file: %s\n", fileName);
- 		}else{
-						
-			const unsigned MAX_LENGTH = 256;
-			char buffer[MAX_LENGTH];
-
-			char *script_lineptr = "";
-			char **script_tokens;
-			
-			while(fgets(buffer, MAX_LENGTH, fp)){
-				printf("%s", buffer);
-				
-				script_lineptr = buffer;
-				
-				//printf("%c\n", script_lineptr[0]);
-				//parse line
-				if(script_lineptr[0] == '$'){
-					script_tokens = save_var(script_lineptr);
-					if(script_tokens != NULL){
-						
-							if(script_variables[script_current_array_size].name == NULL){
-								script_variables[script_current_array_size].name = script_tokens[0];
-								script_variables[script_current_array_size].value = script_tokens[1];
+ 		}
+ 		else{
+	 		const unsigned MAX_LENGTH = 256;
+	 		char buffer[MAX_LENGTH];
+	 		
+	 		char *script_lineptr = "";
+	 		char **script_tokens;
+	 		
+	 		printf("Able to read script file: %s\n", fileName);
+	 		
+	 		while(fgets(buffer, MAX_LENGTH, fp)){
+	 			printf("%s", buffer);
+	 			
+	 			script_lineptr = buffer;
+	 			
+	 			//printf("%c\n", script_lineptr[0]);
+	 			//parse line
+	 			if(script_lineptr[0] == '$'){
+	 				script_tokens = save_var(script_lineptr);
+	 				if(script_tokens != NULL){
+	 					
+	 						if(script_variables[script_current_array_size].name == NULL){
+			 					script_variables[script_current_array_size].name = script_tokens[0];
+			 					script_variables[script_current_array_size].value = script_tokens[1];
 							}
 							script_current_array_size++; 
 												
-					}
-					if(script_tokens[0] != NULL && script_tokens[1] != NULL){
-						
-						for(int i = 0; i <= script_current_array_size; i++){
-							//printf("name check %s what is here\n", variables[i].name);
-							//printf("tokens check %s what is here\n", tokens[0]);
-														
-							if(script_variables[i].name == NULL){
-								script_variables[i].name = script_tokens[0];
-								script_variables[i].value = script_tokens[1];
-							
-								//printf("List var check %s\n", variables[i].name);
+	 				}
+	 				if(script_tokens[0] != NULL && script_tokens[1] != NULL){
+	 					
+	 					for(int i = 0; i <= script_current_array_size; i++){
+	 						//printf("name check %s what is here\n", variables[i].name);
+	 						//printf("tokens check %s what is here\n", tokens[0]);
+	 							 						
+	 						if(script_variables[i].name == NULL){
+			 					script_variables[i].name = script_tokens[0];
+			 					script_variables[i].value = script_tokens[1];
+		 					
+			 					//printf("List var check %s\n", variables[i].name);
 								//printf("List value check %s\n", variables[i].value);
 								
 							}
 							else{
 								if(strcmp(script_variables[i].name, script_tokens[0]) == 0){
-									//printf("current size %d\n", current_array_size);
-									script_variables[i].value = NULL;
-									script_variables[i].value = script_tokens[1];
-									script_current_array_size = script_current_array_size-1; 
-								}
-							}						
+		 							//printf("current size %d\n", current_array_size);
+		 							script_variables[i].value = NULL;
+		 							script_variables[i].value = script_tokens[1];
+		 							script_current_array_size = script_current_array_size-1; 
+		 						}
+	 						}						
 						
 						}
 						//printf("current size %d\n", current_array_size);
@@ -627,23 +688,23 @@ char **save_var(char* lineptr){
 							script_max_array_size *= 2;
 							script_variables = (EnvVar*)(realloc(script_variables, sizeof(EnvVar) * script_max_array_size));
 						}					
-					}
-					else{
-						printf("Something went wrong!\n");
-					}
-					
-				}
-				else{
-					script_tokens = split_line(script_lineptr); 					
-					if(execute_command(script_tokens, script_variables, &myLogs) == 0){
+	 				}
+	 				else{
+	 					printf("Something went wrong!\n");
+	 			 	}
+	 			 	
+	 			}
+	 			else{
+	 				script_tokens = split_line(script_lineptr); 					
+	 				if(execute_command(script_tokens, script_variables, &myLogs) == 0){
 						return(0);
 					}
 				}
-			}
-			free(script_variables);
-			fclose(fp);
-			printf("Bye!\n");
-		}
+	 		}
+	 		free(script_variables);
+	 		fclose(fp);
+	 		printf("Bye!\n");
+ 		}
  	}
  	return (0); 
  }
