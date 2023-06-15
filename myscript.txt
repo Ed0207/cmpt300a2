@@ -1,0 +1,16 @@
+$var=foo
+log
+print $var
+$var=green
+theme red
+pwd 
+whoami
+ls
+theme green
+$tste=woojoo
+print $tste hi $var
+$var=-al
+ls $var
+uppercase hello there 123 how IS it gOIng
+theme blue 
+log
