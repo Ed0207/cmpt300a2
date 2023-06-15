@@ -152,7 +152,7 @@ char **split_line(char *line){
 int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 	int numofcomm = 8, switchcomm = 0;
   	char *listofcomm[numofcomm];
-
+	//list of commands
   	listofcomm[0] = "ls";
   	listofcomm[1] = "pwd";
   	listofcomm[2] = "whoami";
@@ -166,6 +166,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 		return 1;
 	}
   	
+  	//Check if a command has been saved into a variable
   	if(tokens[0][0] == '$'){
 		int loc = 0;			
 		char *compare = NULL;
@@ -181,7 +182,8 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 	  		loc++;
 	  	}
 	}
-  
+  	
+  	//what command to be performed
 	for (int i = 0; i < numofcomm; i++){
 		if (strcmp(tokens[0], listofcomm[i]) == 0){
 	      		switchcomm = i + 1;
@@ -193,7 +195,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   
   	switch (switchcomm) {
   	case 1: //ls
-
+	
 		if(user_input_len > 2){
 			printf("Error: too many arguments detected\n");
 			*myLogs = createLog( "too many argument", -1, *myLogs);
@@ -345,9 +347,9 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 	    	return(1);
   
   	case 5: //exit
-		if(user_input_len > 2){
+		if(user_input_len > 1){
 			printf("Error: too many arguments detected\n");
-			*myLogs = createLog( "too many argument", -1, *myLogs);
+			*myLogs = createLog( "exit", -1, *myLogs);
 			return 1;
 		}else{
 			printf("Bye!\n");
@@ -611,12 +613,9 @@ char **save_var(char* lineptr){
  		else{
 	 		const unsigned MAX_LENGTH = 256;
 	 		char buffer[MAX_LENGTH];
-	 		
 	 		char *script_lineptr = "";
 	 		char **script_tokens;
-	 		
-	 		printf("Able to read script file: %s\n", fileName);
-	 		
+	 			 		
 	 		while(fgets(buffer, MAX_LENGTH, fp)){
 	 			printf("%s", buffer);
 	 			
