@@ -1,4 +1,16 @@
 $var=foo
+$testing=f
+$num=45
+$num2=27
+$1=fsdf
+$2=works
+$3=another
+$4=one
+$5=wr
+$6=please
+$7=f
+$8=tr
+$9=wow
 log
 print $var
 $var=green
@@ -8,9 +20,11 @@ whoami
 ls
 theme green
 $tste=woojoo
+log
 print $tste hi $var
 $var=-al
 ls $var
 uppercase hello there 123 how IS it gOIng
 theme blue 
+theme purple
 log
