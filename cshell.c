@@ -13,7 +13,8 @@ typedef struct {
  	char *value;
 } EnvVar;
 
-int user_input_len;
+int USER_INPUT_LEN;
+int COLORMODE;
  
 
 //Define struct for executed commands 
@@ -25,6 +26,9 @@ typedef struct Command{
 } Command;
  
  
+void resetColor(){
+	printf("\033[0m");
+}
  
 // free up log struct
 // cmd pointer required
@@ -128,7 +132,7 @@ char **split_line(char *line){
     		numtokens++;    
     		token = strtok(NULL, delim);  
   	}
-	user_input_len = numtokens;
+	USER_INPUT_LEN = numtokens;
   	numtokens++;
   
 	// allocate memory for the array of strings
@@ -163,7 +167,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   	listofcomm[6] = "theme";
   	listofcomm[7] = "uppercase";
   	
-	if(user_input_len == 0){
+	if(USER_INPUT_LEN == 0){
 		return 1;
 	}
   	
@@ -197,7 +201,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   	switch (switchcomm) {
   	case 1: //ls
 		//check if too many arguements passed
-		if(user_input_len > 2){
+		if(USER_INPUT_LEN > 2){
 			printf("Error: too many arguments detected\n");
 			*myLogs = createLog( "ls", -1, *myLogs);
 			return 1;
@@ -278,7 +282,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
   	case 2: //pwd
 		//check if too many arguements passed
-		if(user_input_len > 1){
+		if(USER_INPUT_LEN > 1){
 			printf("Error: too many arguments detected\n");
 			*myLogs = createLog( "pwd", -1, *myLogs);
 			return 1;
@@ -297,7 +301,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
   	case 3: //whoami
 		//check if too many arguements passed
-		if(user_input_len > 1){
+		if(USER_INPUT_LEN > 1){
 			printf("Error: too many arguments detected\n");
 			*myLogs = createLog( "whoami", -1, *myLogs);
 			return 1;
@@ -366,7 +370,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
   
   	case 5: //exit
   		//check if too many arguements passed
-		if(user_input_len > 1){
+		if(USER_INPUT_LEN > 1){
 			printf("Error: too many arguments detected\n");
 			//Put in log
 			*myLogs = createLog( "exit", -1, *myLogs);
@@ -379,7 +383,7 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
     
   	case 6://log
   		//check if too many arguements passed
-  		if(user_input_len > 1){
+  		if(USER_INPUT_LEN > 1){
 			printf("Error: too many arguments detected\n");
 			*myLogs = createLog( "log", -1, *myLogs);
 			return 1;
@@ -393,29 +397,35 @@ int execute_command(char **tokens, EnvVar *variables, Command **myLogs){
 
   	case 7://theme
 		//check if too many arguements passed
-		if(user_input_len > 2){
+		if(USER_INPUT_LEN > 2){
 			printf("Error: too many arguments detected\n");
 			*myLogs = createLog( "too many argument", -1, *myLogs);
 			return 1;
 		}
 		
-		//changed the text colour and put in log
   		if(tokens[1] == NULL){
 			printf("Missing keyword or command, or permission problem\n");
 			*myLogs= createLog( "theme", -1, *myLogs);			
 		}
 		else if(strcmp(tokens[1], "red") == 0){
-			//printf("%c[%dm", 0x1B, 31);
-			printf("\033[0;31m");
-		    	*myLogs= createLog( "theme", 0, *myLogs);
+			COLORMODE = 1;
+			printf("%c[%dm", 0x1B, 31);
+		    *myLogs= createLog( "theme", 0, *myLogs);
 		}
 		else if(strcmp(tokens[1], "blue") == 0){
-		    	printf("%c[%dm", 0x1B, 34);
-		    	*myLogs= createLog( "theme", 0, *myLogs);
+		    COLORMODE = 2;
+			printf("%c[%dm", 0x1B, 34);
+		    *myLogs= createLog( "theme", 0, *myLogs);
 		}
 		else if(strcmp(tokens[1], "green") == 0){
-		    	printf("%c[%dm", 0x1B, 32);
-		    	*myLogs= createLog( "theme", 0, *myLogs);
+			COLORMODE = 3;
+		    printf("%c[%dm", 0x1B, 32);
+		    *myLogs= createLog( "theme", 0, *myLogs);
+		}
+		else if(strcmp(tokens[1], "white") == 0){
+			COLORMODE = 0;
+		    resetColor();
+		    *myLogs= createLog( "theme", 0, *myLogs);
 		}
 		else{
 		    	printf("Unsupported theme\n");
@@ -529,7 +539,8 @@ char **save_var(char* lineptr){
  
  int main(int acm, char **argv){
  	Command *myLogs; 
-	user_input_len = 0;
+	USER_INPUT_LEN = 0;
+	COLORMODE = 0;
  		
  	//Interactive mode if acm==1 otherwise script mode 
  	if(acm == 1){
@@ -544,10 +555,43 @@ char **save_var(char* lineptr){
  		
  		//coninue looping until user enters exit
  		while (strcmp(lineptr, "exit\n") != 0){
- 			//print prompt chsell$
- 			printf("%s", prompt);
- 			//read line from std in
- 			lineptr = get_line();
+ 			
+			switch(COLORMODE){
+
+				// red
+				case 1:
+					printf("%c[%dm", 0x1B, 31);
+					printf("%s", prompt);
+					resetColor();
+ 					lineptr = get_line();
+					printf("%c[%dm", 0x1B, 31);
+					break;
+
+				// blue
+				case 2:
+					printf("%c[%dm", 0x1B, 34);
+					printf("%s", prompt);
+					resetColor();
+ 					lineptr = get_line();
+					printf("%c[%dm", 0x1B, 34);
+					break;
+
+				// gree
+				case 3:
+					printf("%c[%dm", 0x1B, 32);
+					printf("%s", prompt);
+					resetColor();
+ 					lineptr = get_line();
+					printf("%c[%dm", 0x1B, 32);
+					break;
+
+				// white
+				default:
+					resetColor();
+					printf("%s", prompt);
+ 					lineptr = get_line();
+					break;
+			}
  			
  			//parse line otherwise run command
  			if(lineptr[0] == '$'){
